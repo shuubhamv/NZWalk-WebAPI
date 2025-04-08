@@ -5,10 +5,10 @@ namespace NZWalk.Api.Models.DTO
 {
     public class ImageUploadRequestDto
     {
-        [Required]
+       // [Required]
         public IFormFile File { get; set; }
 
-        [Required]
+      //  [Required]
         public string FileName { get; set; }
         public string? FileDescription { get; set; }
        

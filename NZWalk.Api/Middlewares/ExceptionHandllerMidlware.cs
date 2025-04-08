@@ -37,7 +37,8 @@ namespace NZWalk.Api.Middlewares
                 var error = new
                 {
                     Id = errorId,
-                    ErrorMessage = "Somthing went  wrong! We are looking into resovlving this."
+                    // ErrorMessage = "Somthing went  wrong! We are looking into resovlving this."
+                    ErrorMessage = ex.Message
                 };
 
                await httpContext.Response.WriteAsJsonAsync( error );

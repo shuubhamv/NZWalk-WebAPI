@@ -19,30 +19,40 @@ namespace NZWalk.Api.Repositories
         }
         public async Task<Image> Upload(Image image)  
         {
-            var localFilePath = Path.Combine(webHostEnvironment.ContentRootPath, "Images", 
-               $"{image.FileName}{image.FileExtension}" );
-             
-            //upload image to the local path
-            using var stream = new FileStream(localFilePath, FileMode.Create);  //reads files steram at localFilePath location and create 
-            await image.File.CopyToAsync(stream); // iformfile method
+            try
+            {
+                var localFilePath = Path.Combine(webHostEnvironment.ContentRootPath, "Images",
+                      $"{image.FileName}{image.FileExtension}");
+
+                //upload image to the local path
+                using var stream = new FileStream(localFilePath, FileMode.Create);  //reads files steram at localFilePath location and create 
+                await image.File.CopyToAsync(stream); // iformfile method
 
 
-            //http://Loccalhost:7100/images/image.jpg
-            var urlFilePath = $"{httpContextAccessor.HttpContext.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}{httpContextAccessor.HttpContext.Request.PathBase}/Images/{image.FileName}{image.FileExtension}";
+                //http://Loccalhost:7100/images/image.jpg
+                var urlFilePath = $"{httpContextAccessor.HttpContext.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}{httpContextAccessor.HttpContext.Request.PathBase}/Images/{image.FileName}{image.FileExtension}";
 
-            image.FilePath = urlFilePath;
-
-
-            // add image to images table
-
-            await dbContext.Images.AddAsync(image);
-
-            await dbContext.SaveChangesAsync();
-
-            return image;
+                image.FilePath = urlFilePath;
 
 
-             
+                // add image to images table
+
+                await dbContext.Images.AddAsync(image);
+
+                await dbContext.SaveChangesAsync();
+
+                return image;
+
+               
+
+            }
+            
+            catch (Exception ex)
+            {
+                throw new Exception("An unexpected error occurred while uploading the image.", ex);
+            }
+
+
         }
     }
 }

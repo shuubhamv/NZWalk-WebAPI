@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyModel;
+using NZWalk.Api.Models.Domain;
 using System.Collections.Generic;
 using System.Data;
 using System.Security.Principal;
@@ -20,6 +21,7 @@ namespace NZWalk.Api.Data
         public NZWalksAuthDbContext(DbContextOptions<NZWalksAuthDbContext> options) : base(options)
         {
         }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

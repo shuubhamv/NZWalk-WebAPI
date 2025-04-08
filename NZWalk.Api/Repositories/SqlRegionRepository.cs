@@ -15,49 +15,91 @@ namespace NZWalk.Api.Repositories
 
         public async Task<Region> CreateAsync(Region region)
         {
-           await dbContext.Regions.AddAsync(region);
-            await dbContext.SaveChangesAsync();
-            return region;
+            try
+            {
+
+                await dbContext.Regions.AddAsync(region);
+                await dbContext.SaveChangesAsync();
+                return region;
+            }
+            catch (Exception ex)
+            {
+
+                throw new Exception ("faild to create:",ex);
+            }
         }
 
         public async Task<Region?> DeleteAsync(Guid id)
         {
-            var existingRegion = await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
-            if (existingRegion == null)
+            try
             {
-                return null;
+                var existingRegion = await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
+                if (existingRegion == null)
+                {
+                    return null;
+                }
+                dbContext.Regions.Remove(existingRegion);
+                await dbContext.SaveChangesAsync();
+                return existingRegion;
             }
-            dbContext.Regions.Remove(existingRegion);
-            await dbContext.SaveChangesAsync();
-            return existingRegion;
+            catch (Exception)
+            {
+
+                throw;
+            }
 
 
         }
 
         public async Task<List<Region>> GetAllAsync()
         {
-          return await dbContext.Regions.ToListAsync();
+            try
+            {
+
+                return await dbContext.Regions.ToListAsync();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
 
         public async Task<Region?> GetByIdAsync(Guid id)
         {
-            return await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
+            try
+            {
+                return await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
 
         }
 
         public async Task<Region?> UpdateAsync(Guid id, Region region)
         {
-            var existingRegion = await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
-            if (existingRegion==null)
-
+            try
             {
-                return null;
+                var existingRegion = await dbContext.Regions.FirstOrDefaultAsync(x => x.id == id);
+                if (existingRegion == null)
+
+                {
+                    return null;
+                }
+                existingRegion.Code = region.Code;
+                existingRegion.Name = region.Name;
+                existingRegion.RegionImageUrl = region.RegionImageUrl;
+                await dbContext.SaveChangesAsync();
+                return existingRegion;
             }
-            existingRegion.Code = region.Code;
-            existingRegion.Name = region.Name;
-            existingRegion.RegionImageUrl = region.RegionImageUrl ;
-            await dbContext.SaveChangesAsync();
-            return existingRegion;
+            catch (Exception)
+            {
+
+                throw;
+            }
 
         }
     }

@@ -11,25 +11,64 @@ using Microsoft.OpenApi.Models;  //Supports Swagger API documentation.
 using System.Net.NetworkInformation; //Provides network information retrieval functions.
 using Microsoft.Extensions.FileProviders;//Enables serving static files (e.g., images).Concept: Static File Middleware – Serves images securely.
 using Serilog;// Provides structured logging //: Logging Middleware – Stores logs for debugging
-using NZWalk.Api.Middlewares; //imports custom exception-handling middleware
+using NZWalk.Api.Middlewares;
+using FluentValidation.AspNetCore;
+using NZWalk.Api;
+using NZWalk.Api.Services;
+using Serilog.Sinks.Elasticsearch;
+using System.Security.Claims; //imports custom exception-handling middleware
 
 var builder = WebApplication.CreateBuilder(args);            //Creates an instance of WebApplication to configure services & middleware.
 
 // Add services to the container.
 
 //serilog injection
-var logger = new LoggerConfiguration()
+Log.Logger = new LoggerConfiguration()
+     .ReadFrom.Configuration(builder.Configuration)  // Read settings from appsettings.json
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithProcessId()
+    .Enrich.WithThreadId()
     .WriteTo.Console()
     .WriteTo.File("Logs/NZWalks_log.txt",rollingInterval:RollingInterval.Day)
-    .MinimumLevel.Warning() 
+ //.MinimumLevel.Warning() 
+ .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9200"))  // Use HTTP instead of HTTPS
+ {
+     AutoRegisterTemplate = true,
+     IndexFormat = $"apilogs-{DateTime.UtcNow:yyyy.MM}" // Creates a new index every month
+ })
+   
     .CreateLogger();
 
 builder.Logging.ClearProviders();   // remove default logging
-builder.Logging.AddSerilog(logger); // add serilog
+
+builder.Host.UseSerilog();
+
+//builder.Logging.AddSerilog(); // add serilog
 // end  seilog
+builder.Services.AddScoped<IQrCodeService, QrCodeService>();
+
+builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
 
 
-builder.Services.AddControllers();  //Registers API Controllers.
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<GlobalExceptionFilter>(); // Register exception filter globally
+});  //Registers API Controllers.
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:4200") // Allow only Angular frontend
+                  .AllowAnyMethod() // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+                  .AllowAnyHeader() // Allow any headers
+                  .AllowCredentials(); // Allow cookies/authentication tokens
+        });
+});
+
 
 builder.Services.AddHttpContextAccessor(); // Required for handling file uploads (e.g., images)which allows access to HTTP context (such as requests, user identity, and session data) f
 
@@ -70,6 +109,13 @@ builder.Services.AddSwaggerGen(Options =>
         }
     });
 });
+//fluent validation
+builder.Services.AddFluentValidation(options => options.RegisterValidatorsFromAssemblyContaining<Program>());
+//builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+
+//cqrs design pateern MediatR
+builder.Services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 builder.Services.AddDbContext<NZWalksDbContext>(Options =>
 Options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString")));
@@ -122,18 +168,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
+        
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+
+        // Critical claim mappings
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
     });
 
 
 //Builds the app after configuring all services.
 var app = builder.Build();
+
+app.UseSerilogRequestLogging(); // Logs HTTP requests
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -142,10 +195,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 //Sets up middleware for error handling, authentication, authorization, and static files.
+
+
 app.UseMiddleware<ExceptionHandllerMidlware>();
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowAngularApp");
 app.UseAuthentication();
 
 app.UseAuthorization();
