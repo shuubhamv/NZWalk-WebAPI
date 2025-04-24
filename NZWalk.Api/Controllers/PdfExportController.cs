@@ -43,7 +43,7 @@ namespace NZWalk.Api.Controllers
             }
             catch (Exception ex)
             {
-              
+                logger.LogError(ex, "Failed to genrate Pdf");
                 throw new Exception($"{ex.Message}");
             }
         }
@@ -62,6 +62,7 @@ namespace NZWalk.Api.Controllers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Failed to genrate Pdf");
 
                 throw new Exception($"{ex.Message}");
             }

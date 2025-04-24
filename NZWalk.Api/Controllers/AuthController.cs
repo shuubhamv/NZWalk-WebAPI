@@ -88,6 +88,7 @@ namespace NZWalk.Api.Controllers
                 logger.LogError(ex, "[AuthController] Error occurred during registration.");
                 return StatusCode(500, "An error occurred while processing  request.");
 
+
             }
 
 

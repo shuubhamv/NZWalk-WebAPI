@@ -31,7 +31,7 @@ namespace NZWalk.Api.Controllers
         }
 
         [HttpPost("generate")]
-        [Authorize(Roles = "Writer")]
+        [Authorize(Roles = "Writer,Reader")]
         public async Task<IActionResult> GenerateQRCode([FromBody] QRCodeRequestDto request)
         {
 
@@ -61,10 +61,10 @@ namespace NZWalk.Api.Controllers
 
                 return Ok(result);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                throw;
+                throw new Exception($"Error occured in faild to genreate controller",ex);
             }
         }
     }

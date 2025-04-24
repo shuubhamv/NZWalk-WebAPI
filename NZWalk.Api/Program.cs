@@ -17,6 +17,19 @@ using NZWalk.Api;
 using NZWalk.Api.Services;
 using Serilog.Sinks.Elasticsearch;
 using System.Security.Claims; //imports custom exception-handling middleware
+using NZWalk.Api.Models;
+using NZWalk.Api.Models.EmailConfiguration;
+using System.Net;
+using System.Net.Mail;
+using NZWalk.Api.Services.EmailService;
+
+
+// Add this near the beginning of your Program.cs
+var imagesPath = Path.Combine(Directory.GetCurrentDirectory(), "Images");
+if (!Directory.Exists(imagesPath))
+{
+    Directory.CreateDirectory(imagesPath);
+}
 
 var builder = WebApplication.CreateBuilder(args);            //Creates an instance of WebApplication to configure services & middleware.
 
@@ -49,6 +62,23 @@ builder.Host.UseSerilog();
 builder.Services.AddScoped<IQrCodeService, QrCodeService>();
 
 builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
+
+
+//email service
+
+//  for SMTP:
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.AddTransient<IEmailService, SmtpEmailService>();
+
+// For IHostedService background processing:
+builder.Services.AddSingleton<IBackgroundEmailQueue, BackgroundEmailQueue>();
+builder.Services.AddHostedService<BackgroundEmailSender>();
+
+//end email. service
+
+
+
+
 
 
 builder.Services.AddControllers(options =>
@@ -181,6 +211,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = ClaimTypes.Role
     });
+
 
 
 //Builds the app after configuring all services.

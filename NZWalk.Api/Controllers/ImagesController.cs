@@ -76,6 +76,7 @@ namespace NZWalk.Api.Controllers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Image upload failed");
                 return BadRequest(new { Message = "File upload failed", Error = ex.Message });
             }
 
